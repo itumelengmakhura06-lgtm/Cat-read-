@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copycat Magic English</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background-color: #FFDE4D;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        #game-container {
+            background-color: white;
+            border-radius: 25px;
+            padding: 25px;
+            box-shadow: 0px 10px 0px #FFB200;
+            text-align: center;
+            max-width: 420px;
+            width: 100%;
+            border: 4px solid #FFB200;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        h1 { color: #FF4C4C; font-size: 28px; margin-top: 0; text-shadow: 2px 2px #FFF; }
+        .score-board { background-color: #4DE1FF; color: white; padding: 10px 20px; border-radius: 50px; font-size: 20px; font-weight: bold; display: inline-block; margin-bottom: 20px; box-shadow: 0px 4px 0px #00A3C4; }
+
+        /* Themed Buttons */
+        .btn { border: none; padding: 15px 25px; font-size: 20px; font-weight: bold; border-radius: 50px; cursor: pointer; transition: 0.1s; width: 85%; margin: 10px auto; display: block; color: white; }
+        .btn:active { transform: translateY(4px); box-shadow: 0px 2px 0px rgba(0,0,0,0.2); }
+
+        .btn-category { background-color: #9C27B0; box-shadow: 0px 6px 0px #4A148C; }
+        .btn-listen { background-color: #4CAF50; box-shadow: 0px 6px 0px #2E7D32; }
+        .btn-speak { background-color: #FF9800; box-shadow: 0px 6px 0px #E65100; }
+        .btn-check { background-color: #FF4C4C; box-shadow: 0px 6px 0px #990000; }
+        .btn-hint { background-color: #FFC107; box-shadow: 0px 6px 0px #FFA000; width: auto; display: inline-block; padding: 10px 20px; }
+        
+        .btn-back { background-color: #78909C; box-shadow: 0px 4px 0px #37474F; font-size: 14px; padding: 8px 15px; width: auto; display: inline-block; margin-bottom: 15px; }
+
+        .btn-book { 
+            background-color: #ff6b6b; 
+            box-shadow: 0px 6px 0px #ee5253; 
+            margin-top: 20px; 
+            font-size: 22px;
+            animation: pulse 1.5s infinite; 
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Gameplay Elements */
+        .word-display { font-size: 45px; font-weight: bold; color: #2F86A6; letter-spacing: 5px; margin: 15px 0; }
+        .instruction { font-size: 18px; color: #555; margin-bottom: 20px; min-height: 50px; padding: 0 10px; }
+        .spell-input { font-size: 30px; text-align: center; width: 80%; padding: 10px; border: 3px dashed #4DE1FF; border-radius: 10px; text-transform: uppercase; margin-bottom: 15px; outline: none; }
+
+        /* --- STICKER BOOK MODAL --- */
+        #sticker-book-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #book-content {
+            background-color: #fdfdfd;
+            border-radius: 20px;
+            border: 10px solid #a366ff;
+            width: 90%;
+            max-width: 500px;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .sticker-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .sticker-slot {
+            width: 100%;
+            aspect-ratio: 1/1;
+            border-radius: 15px;
+            background-color: #eee;
+            border: 3px solid #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Appearance of earned stickers */
+        .sticker-slot img { max-width: 80%; max-height: 80%; filter: drop-shadow(0px 4px 2px rgba(0,0,0,0.3)); }
+        
+        /* Appearance of missing stickers (dark silhouette) */
+        .sticker-slot.missing img { filter: brightness(0); opacity: 0.1; }
+
+        /* --- VISUAL HINT (IDEA #1) --- */
+        #hint-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            z-index: 1001;
+            justify-content: center;
+            align-items: center;
+        }
+        #hint-modal img {
+            max-width: 80%;
+            max-height: 80%;
+            border: 10px solid white;
+            border-radius: 20px;
+            box-shadow: 0px 0px 30px #FFDE4D;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="main-screen">
+            <h1>✨ Copycat Magic! ✨</h1>
+            <p style="font-size: 18px; color: #555;">Pick a level to practice reading & speaking:</p>
+            <button class="btn btn-category" onclick="selectCategory('animals')">🐾 Animals</button>
+            <button class="btn btn-category" onclick="selectCategory('house')">🏠 House</button>
+            <button class="btn btn-category" onclick="selectCategory('nature')">🌱 Nature</button>
+
+            <button class="btn btn-book" id="open-book-btn">📖 My Sticker Book</button>
+        </div>
+
+        <div id="game-screen" style="display: none;">
+            <button id="back-btn" class="btn btn-back">⬅️ Change Level</button>
+            <div class="score-board">⭐ Points: <span id="score">0</span></div>
+            
+            <div id="word-box" class="word-display">WORD</div>
+            <div id="feedback" class="instruction">Press "Hear Word" to start!</div>
+
+            <button id="hint-btn" class="btn btn-hint" style="display:none;">🖼️ Show Picture Hint</button>
+            
+            <br>
+
+            <button id="listen-btn" class="btn btn-listen">🔊 Hear Word</button>
+            <button id="speak-btn" class="btn btn-speak" style="display:none;">🎤 Start Speaking</button>
+            
+            <div id="spell-stage" style="display:none;">
+                <input type="text" id="spell-text" class="spell-input" placeholder="Type here">
+                <button id="check-spell-btn" class="btn btn-check">✏️ Check Spelling</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="sticker-book-modal">
+        <div id="book-content">
+            <h1 style="color: #9C27B0;">📖 My Magic Stickers 📖</h1>
+            <p>Every time you beat a level, you win a sticker!</p>
+            <div id="sticker-grid" class="sticker-grid"></div>
+            <button class="btn btn-category" style="width: auto; margin-top: 20px;" onclick="closeBook()">Close Book</button>
+        </div>
+    </div>
+
+    <div id="hint-modal">
+        <img id="hint-image" src="" alt="Hint Picture">
+    </div>
+
+    <script>
+        // Game Data organized by Categories
+        const categories = {
+            animals: [
+                { word: "CAT", sentence: "I see a cat" },
+                { word: "DOG", sentence: "The dog can run" },
+                { word: "BIRD", sentence: "The bird can fly high" },
+                { word: "FISH", sentence: "The fish swims in water" },
+                { word: "LION", sentence: "The lion is the king" }
+            ],
+            house: [
+                { word: "CUP", sentence: "This is a cup" },
+                { word: "BED", sentence: "This is my bed" },
+                { word: "CHAIR", sentence: "Sit on the chair" },
+                { word: "DOOR", sentence: "Please close the door" },
+                { word: "LAMP", sentence: "Turn on the lamp" }
+            ],
+            nature: [
+                { word: "SUN", sentence: "The sun is hot" },
+                { word: "TREE", sentence: "The tree is big and green" },
+                { word: "RAIN", sentence: "The rain falls down" },
+                { word: "ROSE", sentence: "The rose is pretty red" },
+                { word: "STAR", sentence: "Look at the shining star" }
+            ]
+        };
+
+        let currentCategoryKey = ""; // Track current category name
+        let currentCategory = [];
+        let currentIndex = 0;
+        let score = 0;
+        let finalTranscript = "";
+
+        // Elements
+        const mainScreen = document.getElementById('main-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const wordBox = document.getElementById('word-box');
+        const feedback = document.getElementById('feedback');
+        const listenBtn = document.getElementById('listen-btn');
+        const speakBtn = document.getElementById('speak-btn');
+        const spellStage = document.getElementById('spell-stage');
+        const spellText = document.getElementById('spell-text');
+        const checkSpellBtn = document.getElementById('check-spell-btn');
+        const scoreDisplay = document.getElementById('score');
+        const backBtn = document.getElementById('back-btn');
+        const hintBtn = document.getElementById('hint-btn');
+        const openBookBtn = document.getElementById('open-book-btn');
+
+        // Speech Engine API
+        const synth = window.speechSynthesis;
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+
+        if (recognition) {
+            recognition.lang = 'en-US';
+            recognition.interimResults = true; 
+            recognition.continuous = true;     
+        }
+
+        // --- CORE GAMEPLAY LOGIC ---
+
+        function selectCategory(categoryKey) {
+            currentCategoryKey = categoryKey; // Important for Sticker Book tracking
+            currentCategory = categories[categoryKey];
+            currentIndex = 0;
+            mainScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+            loadLevel();
+        }
+
+        backBtn.addEventListener('click', () => {
+            gameScreen.style.display = 'none';
+            mainScreen.style.display = 'block';
+            if(recognition) recognition.stop();
+            synth.cancel(); 
+        });
+
+        function loadLevel() {
+            spellStage.style.display = 'none';
+            speakBtn.style.display = 'none';
+            listenBtn.style.display = 'block';
+            hintBtn.style.display = 'block'; // Hide visual hint initially
+            spellText.value = '';
+            finalTranscript = "";
+            
+            let currentData = currentCategory[currentIndex];
+            wordBox.innerText = currentData.word;
+            spellText.maxLength = currentData.word.length; 
+            feedback.innerText = 'Press "Hear Word" to listen to the magic sentence!';
+            speakBtn.innerText = `🎤 Start Speaking`;
+        }
+
+        // STEP 1: Listen
+        listenBtn.addEventListener('click', () => {
+            let currentData = currentCategory[currentIndex];
+            let utterThis = new SpeechSynthesisUtterance(currentData.sentence);
+            utterThis.rate = 0.80;
+            synth.speak(utterThis);
+            
+            feedback.innerText = `Listen closely! Now press the Orange button, take your time, and say: "${currentData.sentence}"`;
+            listenBtn.style.display = 'none';
+            speakBtn.style.display = 'block';
+        });
+
+        // STEP 2: Patient Speaking
+        speakBtn.addEventListener('click', () => {
+            if (!recognition) {
+                feedback.innerText = "Speech typing isn't fully supported. Let's spell it!";
+                setTimeout(startSpellingStage, 2000);
+                return;
+            }
+
+            if (speakBtn.innerText === "🎤 Start Speaking") {
+                finalTranscript = "";
+                feedback.innerText = "Listening... Speak slowly, I am waiting for you! ✨";
+                speakBtn.innerText = "🛑 Done Speaking! Click to Check";
+                speakBtn.style.backgroundColor = "#FF4C4C"; 
+                recognition.start();
+            } else {
+                recognition.stop();
+                checkVoiceAnswer();
+            }
+        });
+
+        if (recognition) {
+            recognition.onresult = (event) => {
+                let interimTranscript = "";
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                let currentSpeech = (finalTranscript + interimTranscript).toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+                if (currentSpeech.trim() !== "") {
+                    feedback.innerText = `I hear you saying: "${currentSpeech}"... keep going!`;
+                }
+            };
+        }
+
+        function checkVoiceAnswer() {
+            speakBtn.innerText = "🎤 Start Speaking";
+            speakBtn.style.backgroundColor = "#FF9800";
+            let currentData = currentCategory[currentIndex];
+            let cleanSpeech = finalTranscript.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+            let targetSentence = currentData.sentence.toLowerCase();
+            let targetWord = currentData.word.toLowerCase();
+
+            // Check if she said the keyword OR the full sentence structure
+            if (cleanSpeech.includes(targetWord) || cleanSpeech.includes(targetSentence)) {
+                feedback.innerText = "🎉 AMAZING! You used your Magic English Voice! Let's spell it now.";
+                let successSound = new SpeechSynthesisUtterance("Great job! Now spell it.");
+                synth.speak(successSound);
+                
+                setTimeout(startSpellingStage, 2500);
+            } else {
+                feedback.innerText = `I heard "${cleanSpeech || 'silence'}". Let's tap 'Start Speaking' and try one more time!`;
+            }
+        }
+
+        function startSpellingStage() {
+            speakBtn.style.display = 'none';
+            listenBtn.style.display = 'none';
+            hintBtn.style.display = 'none'; // Hide hint during spelling
+            spellStage.style.display = 'block';
+            feedback.innerText = `Look closely at the big word. Type the correct letters below!`;
+        }
+
+        // STEP 3: Spelling Check
+        checkSpellBtn.addEventListener('click', () => {
+            let targetWord = currentCategory[currentIndex].word;
+            let userGuess = spellText.value.toUpperCase().trim();
+
+            if (userGuess === targetWord) {
+                score += 5;
+                scoreDisplay.innerText = score;
+                feedback.innerText = "⭐ YAAY! Correct spelling! You earned 5 points!";
+                synth.speak(new SpeechSynthesisUtterance("You got it right!"));
+
+                setTimeout(() => {
+                    currentIndex++;
+                    // Check if category is completed
+                    if (currentIndex >= currentCategory.length) {
+                        // SHE BEAT THE LEVEL! Record the win for the sticker book
+                        markCategoryAsComplete(currentCategoryKey);
+                        
+                        feedback.innerText = "🏆 WOW! You beat this level! Let's go collect your sticker!";
+                        synth.speak(new SpeechSynthesisUtterance("Fantastic! You won a sticker!"));
+                        
+                        setTimeout(() => {
+                            gameScreen.style.display = 'none';
+                            mainScreen.style.display = 'block';
+                            updateStickerBookUI(); // Force refresh of main screen UI (e.g., sticker count)
+                        }, 2500);
+                    } else {
+                        loadLevel();
+                    }
+                }, 2500);
+            } else {
+                feedback.innerText = "❌ Not quite right! Look at the big letters above and match them!";
+            }
+        });
+
+
+        // --- MODAL & REWARD LOGIC ---
+
+        const hintModal = document.getElementById('hint-modal');
+        const hintImage = document.getElementById('hint-image');
+        const stickerBookModal = document.getElementById('sticker-book-modal');
+        const stickerGrid = document.getElementById('sticker-grid');
+
+        // Close hints/books whenever a modal background is clicked
+        hintModal.addEventListener('click', () => hintModal.style.display = 'none');
+
+        // --- IDEA 1: Visual Hints ---
+        hintBtn.addEventListener('click', () => {
+            let currentWord = currentCategory[currentIndex].word.toLowerCase();
+            
+            // NOTE: For this to work, you need to create an 'images' folder
+            // and save images named 'cat.png', 'dog.png', 'cup.png', etc.
+            hintImage.src = `images/${currentWord}.png`; 
+            
+            hintModal.style.display = 'flex'; // Show visual hint
+        });
+
+
+        // --- IDEA 4: Sticker Book Logic ---
+        
+        // Load completed categories from her device memory (LocalStorage)
+        function getCompletedCategories() {
+            return JSON.parse(localStorage.getItem('copycat_stickers')) || [];
+        }
+
+        function markCategoryAsComplete(categoryKey) {
+            let completed = getCompletedCategories();
+            if (!completed.includes(categoryKey)) {
+                completed.push(categoryKey);
+                localStorage.setItem('copycat_stickers', JSON.stringify(completed));
+            }
+        }
+
+        function updateStickerBookUI() {
+            stickerGrid.innerHTML = ''; // Clear current grid
+            let completedCategories = getCompletedCategories();
+
+            // List of all category keys (defining the "sticker slots")
+            const stickerSlots = Object.keys(categories);
+
+            stickerSlots.forEach(slotKey => {
+                const isEarned = completedCategories.includes(slotKey);
+                
+                const slotDiv = document.createElement('div');
+                slotDiv.className = `sticker-slot ${isEarned ? '' : 'missing'}`;
+                
+                // Define the sticker image path. Create these files:
+                // images/animals-sticker.png, images/house-sticker.png, images/nature-sticker.png
+                const stickerImgPath = `images/${slotKey}-sticker.png`;
+
+                slotDiv.innerHTML = `<img src="${stickerImgPath}" alt="${slotKey} sticker">`;
+                
+                stickerGrid.appendChild(slotDiv);
+            });
+        }
+
+        openBookBtn.addEventListener('click', () => {
+            updateStickerBookUI();
+            stickerBookModal.style.display = 'flex';
+        });
+
+        function closeBook() {
+            stickerBookModal.style.display = 'none';
+        }
+
+        // Initialize App
+        updateStickerBookUI(); // Build book data quietly in background on start
+    </script>
+</body>
+</html>
